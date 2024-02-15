@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ```{r libraries, message = FALSE}
 # it's good practice to check that all the packages required are loaded and installed
-libs <- c('tidyverse','knitr','viridis','mdsr', 'macleish','babynames')
+libs <- c('tidyverse','knitr','viridis','mdsr', 'macleish','babynames', 'mosaicData')
 for(l in libs){
   if(!require(l,character.only = TRUE, quietly = TRUE)){
     message( sprintf('Did not have the required package << %s >> installed. Downloading now ... ',l))
@@ -38,11 +38,16 @@ for(l in libs){
 
 Write a function called `count_name` that, when given a name as an argument, returns the total number of births by year from the `babynames` data frame in the `babynames` package that match that name. The function should return one row per year that matches (and generate an error message if there are no matches). Run the function once with the argument Ezekiel and once with Ezze.
 
-```{r, eval= FALSE}
+```{r, eval= TRUE}
 data(babynames) # this will explicitly ask R to load the babynames dataset to your environment
-count_name <- function(name){
-  # your code here
+count_name <- function(x){
+  babynames %>% 
+    filter(name == x) %>% 
+    group_by(year) %>% 
+    summarize(total = sum(n))
 }
+
+count_name("Ezekiel")
 ```
 
 
