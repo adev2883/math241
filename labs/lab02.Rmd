@@ -1,9 +1,8 @@
 ---
 title: "Lab 2"
-#author: "Insert Name"
+author: "Ashwin Dev"
 date: "Math 241, Week 2"
-output:
-  pdf_document
+output: pdf_document
 urlcolor: blue
 ---
 
@@ -56,6 +55,35 @@ The dataset can be found in the `dsbox` package, and is called `accidents`. It c
 knitr::include_graphics("../img/edi-accidents-1.png")
 ```
 
+***
+
+```{r}
+accidents2 <- accidents %>%
+  mutate(day_of_week = recode(day_of_week,
+                              "Monday" = "Weekday",
+                              "Tuesday" = "Weekday",
+                              "Wednesday" = "Weekday",
+                              "Thursday" = "Weekday",
+                              "Friday" = "Weekday",
+                              "Saturday" = "Weekend",
+                              "Sunday" = "Weekend"
+))
+```
+
+
+```{r}
+ggplot(data = accidents2, mapping = aes(x = time, color = severity, fill = severity)) + 
+  geom_density(alpha = 0.5) +
+  theme_bw() +
+  scale_fill_manual(values = c("Fatal" = "purple", "Serious" = "blue", "Slight" = "yellow")) +
+  scale_color_manual(values = c("Fatal" = "purple", "Serious" = "blue", "Slight" = "yellow")) +
+  facet_wrap(~day_of_week, ncol = 1) +
+  labs(title = "Number of accidents throughout the day",
+       subtitle = "By day of week and severity",
+       x = "Time of day")
+```
+
+***
 
 ### Problem 2: One Dataset, Visualized ~~25~~ 5 Ways
 
@@ -63,13 +91,103 @@ Inspired by Nathan Yau's [One Dataset, Visualized 25 Ways](https://flowingdata.c
 
 a. Pick 3 - 4 variables you want to explore.  Provide their code names here.
 
+***
+
+manufacturer, cty, hwy, fl
+
+***
+
 b. Create 5 graphs.  A few things to consider:
     + Like Nathan's graphs, they don't all have to contain every one of your selected variables.
     + You can't use the same `geom` for all four graphs but you can use the same `geom` more than once.
     + Think carefully about color, the coordinate system, and scales.
     + Feel free to subset or wrangling the dataset if you want to but it isn't required.
+    
+***
+
+```{r}
+data(mpg)
+
+ggplot(mpg, aes(x = cty, y = hwy)) + 
+  geom_point(aes(color = manufacturer), alpha = 0.6) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(x = "City MPG", y = "Highway MPG", color = "Manufacturer",
+       title = "City vs Highway MPG",
+       subtitle = "Each point represents a car model")
+```
+
+```{r}
+ggplot(data = mpg, mapping = aes(x = fl, y = hwy, fill = fl)) + 
+  geom_boxplot() + 
+  scale_fill_brewer(palette = "Paired") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.title.x = element_text(face = "bold"),
+    axis.title.y = element_text(face = "bold"),
+    legend.position = "bottom") +
+  labs(
+    title = "Distributions of Highway MPG",
+    subtitle = "By Fuel Type",
+    x = "Fuel Type", 
+    y = "Highway MPG")
+```
+
+```{r}
+mpg_avg <- mpg %>%
+  group_by(manufacturer, fl) %>%
+  summarise(avg_hwy = mean(hwy, na.rm = TRUE))
+
+ggplot(mpg_avg, aes(x = reorder(manufacturer, avg_hwy), y = avg_hwy, fill = fl)) + 
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(~fl, scales = "free_x") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 65, hjust = 1),
+        legend.position = "bottom") +
+  labs(x = "Manufacturer", y = "Average Highway MPG", fill = "Fuel Type",
+       title = "Average Highway MPG by Manufacturer and Fuel Type",
+       subtitle = "Bars are colored by the type of fuel used")
+```
+
+```{r, fig.width=10}
+ggplot(mpg, aes(x = manufacturer, y = hwy, fill = manufacturer)) + 
+  geom_boxplot() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "Manufacturer", y = "Highway MPG", 
+       title = "Highway Mileage by Manufacturer",
+       subtitle = "Boxplot showing the spread of highway MPG across different car manufacturers")
+```
+
+```{r, fig.width=10}
+ggplot(mpg, aes(x = manufacturer, y = cty, fill = manufacturer)) + 
+  geom_boxplot() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  labs(x = "Manufacturer", y = "City MPG", 
+       title = "City Mileage by Manufacturer",
+       subtitle = "Boxplot showing the spread of city MPG across different car manufacturers")
+```
+
+***
 
 c. Discuss the pros/cons of your graphs.  What useful information can be gleaned?  How do the different geoms and aesthetics impact the story?
+
+***
+
+Pros: I think I made good use of the scale_fill commands. As a result, I think my graphs have some nice colors on them. I did my best to make the labeling as clear as possible, so I would consider that a pro.
+
+Cons: In the second graph, I wasn't really sure how to make the fuel type for fl go away. It's just the name of the variable so it doesn't make sense for there to be a boxplot. I think my third graph has a lot going on in it, and upon first glance I think it might be overwhelming for some people.
+
+The different geoms and aesthetics, for the most part, really help to differentiate between car manufacturers. At least, that's what I was trying to go for. The second graph is the only one I didn't use the car manufacturer variable for, however, the colors make it easy to differentiate by fuel type. I think if a random were to look at these graphs, they would see that Volkswagen cars tend to have good city and highway mileage in comparison to cars from other manufacturers. I'd say that's what stood out to me in regards to the "story".
+
+***
 
 
 ### Problem 3: Style This Code!
@@ -77,11 +195,23 @@ c. Discuss the pros/cons of your graphs.  What useful information can be gleaned
 Take the following code and don't change its functionality but DO change its style.  Use the [Tidyverse Style Guide](https://style.tidyverse.org/)!
 
 ```{r}
-thing.132232=data.frame(theanimalsweightisthisnumber=c(runif(3),NA),y=c("cat","mouse","dog","rat"))
-median(thing.132232$theanimalsweightisthisnumber, TRUE);mean(thing.132232$theanimalsweightisthisnumber, 0 , TRUE); var(thing.132232$theanimalsweightisthisnumber, NULL, TRUE)
+animal_weights <- data.frame(
+  weight = c(runif(3), NA),
+  animal = c("cat", "mouse", "dog", "rat")
+)
 
+animal_median <- median(animal_weights$weight)
+animal_mean <- mean(animal_weights$weight, 0, TRUE)
+animal_var <- var(animal_weights$weight, NULL, TRUE)
 
-ggplot(thing.132232, aes(y=theanimalsweightisthisnumber,x=y))+geom_col()+scale_y_continuous()
+ggplot(animal_weights, aes(x = animal, y = weight)) +
+  geom_col() +
+  scale_y_continuous() +
+  labs(
+    x = "Animal",
+    y = "Weight",
+    title = "Animal Weights"
+  )
 ```
 
 
@@ -93,16 +223,68 @@ For this problem, I want you to try to recreate a FiveThirtyEight.com graphic.  
 a. Take a screenshot of the graph, upload it to the same folder on the server where you have saved your lab, and insert the file name below.  Then change the `eval = FALSE` to `eval = TRUE`.
 
 
-```{r, out.width="100%", echo=FALSE, eval = FALSE}
-knitr::include_graphics("../img/538_graph.png")
+```{r, out.width="100%", echo=FALSE, eval = TRUE}
+knitr::include_graphics("imgDS.png")
 ```
 
 
-b. Load the data and recreate the graph as best as you can.  
+b. Load the data and recreate the graph as best as you can.
+
+***
+
+```{r}
+getwd()
+
+approval_pollist <- read.csv("approval_pollist.csv")
+```
+
+
+```{r}
+ggplot(approval_pollist) +
+  geom_point(aes(x = enddate, y = approve), color = "green", alpha = 0.2) +
+  geom_point(aes(x = enddate, y = disapprove), color = "orange", alpha = 0.2) +
+  geom_smooth(aes(x = enddate, y = approve), color = "green", method = "gam", formula = y ~ s(x, bs = "cs")) +
+  geom_smooth(aes(x = enddate, y = disapprove), color = "orange", method = "gam", formula = y ~ s(x, bs = "cs")) +
+  labs(title = "How popular is Donald Trump?",
+       subtitle = "An updating calculation of the president's approval rating, accounting for each poll's quality, recency, sample size, and partisan lean",
+       x = NULL, y = "Percentage") +
+  theme_minimal()
+```
+
+***
 
 c. Now make the graph better somehow.
 
+***
+
+```{r}
+ggplot(approval_pollist, aes(x = enddate)) +
+  geom_point(aes(y = approve), color = "green", alpha = 0.5, shape = 17) +
+  geom_point(aes(y = disapprove), color = "orange", alpha = 0.5, shape = 19) +
+  geom_smooth(aes(y = approve), color = "green", method = "gam", formula = y ~ s(x, bs = "cs")) +
+  geom_smooth(aes(y = disapprove), color = "orange", method = "gam", formula = y ~ s(x, bs = "cs")) +
+  labs(
+    title = "How popular is Donald Trump?",
+    subtitle = "An updating calculation of the president's approval rating, accounting for each poll's quality, recency, sample size, and partisan lean", y = "Percentage"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  )
+```
+
+
+***
+
 d. Justify why your rendition of this `FiveThirtyEight.com` graph is more effective at telling the data story than the original. 
+
+***
+
+I wouldn't say that there is a lot better in my graphs than in the picture of the graph I uploaded. I would say the only thing better in my second graph is that I used circles and triangles to differentiate between approve and disapprove. Other than that, I'd say I struggled to replicate the original graph.
+
+***
 
 ### Problem 5: Rental apartments in SF
 
@@ -111,7 +293,7 @@ The data for this exercise comes from `TidyTuesday`, and is on rental prices in 
 Limit your analysis to rentals where the full unit is available, i.e. (`room_in_apt	== 0`). You have the flexibility to choose which years and which neighborhoods. Note that you should have a maximum of 8 neighborhoods on your visualization, but one or more of them can be a combination of many (e.g., an "other" category). Your visualization should also display some measure of the variability in your data.
 You get to decide what type of visualization to create and there is more than one correct answer! In your answer, include a brief description of why you made the choices you made as well as an interpretation of the findings of how rental prices vary over time and neighborhoods in San Francisco.
 
-```{r, eval = F}
+```{r, eval = TRUE}
 # Get the Data
 
 # Read in with tidytuesdayR package 
@@ -125,3 +307,40 @@ rent <- tuesdata$rent
 
 ```
 
+***
+
+```{r}
+sf_rent <- rent %>%
+  filter(city == "san francisco", room_in_apt == 0) %>%
+  select(date, year, nhood, price, beds)
+
+top_neighborhoods <- sf_rent %>%
+  count(nhood, sort = TRUE) %>%
+  top_n(7, n) %>%
+  pull(nhood)
+
+sf_rent <- sf_rent %>%
+  mutate(nhood = if_else(nhood %in% top_neighborhoods, nhood, "other"))
+
+selected_years <- c(2010, 2015, 2020)
+sf_rent_selected_years <- sf_rent %>%
+  filter(year %in% selected_years)
+
+```
+
+```{r, fig.width=7}
+ggplot(sf_rent_selected_years, aes(x = factor(beds), y = price, fill = nhood)) +
+  geom_boxplot() +
+  facet_wrap(~year, scales = 'free_x') +
+  labs(title = "Distribution of Rental Prices per Bedroom Across Neighborhoods in San Francisco for Selected Years",
+       x = "Number of Bedrooms",
+       y = "Price",
+       fill = "Neighborhood") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+The visualization utilizes boxplots to concisely depict the rental price distributions per bedroom across selected neighborhoods in San Francisco, chosen for their clarity in showing central tendency and dispersion. By focusing on the years 2010 and 2015, the graph highlights clear trends in rising rental prices over time and variances in neighborhood affordability. The boxplots reveal a wide range of prices within neighborhoods, with 'other' neighborhoods displaying the greatest diversity, and neighborhoods like SOMA/South Beach and Pacific Heights showing higher median rental prices, particularly for larger units. This suggests that while prices are generally increasing, the value attributed to each neighborhood varies, with certain areas consistently commanding premium pricing. 
+
+***
