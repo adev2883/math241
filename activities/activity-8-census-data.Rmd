@@ -35,7 +35,7 @@ In order to directly download data from the Census API, you need a key. You can 
 Type your key in quotes using the `census_api_key()` command
 
 ```{r, eval = F}
-census_api_key("YOUR API KEY GOES HERE", install = TRUE)
+census_api_key("3579cb4ddc820f37984700778b812af510e15c1a", install = TRUE)
 ```
 
 
@@ -128,7 +128,12 @@ or_county %>%
 We can create new variables using the `mutate()` function. For example, you can create a variable for the percentage of the population that is white for each county in Oregon, and map it.
 
 ```{r, eval = FALSE}
+library(tidyverse)  
+library(tidycensus)  
+library(sf) 
 
+or_county <- or_county %>%
+  mutate(percentage_white = (white_popE / total_popE) * 100)
 ```
 
 ## Census tracts
@@ -169,14 +174,50 @@ mutlnomah_tracts <- get_acs(geography = "tract",
 Look at the data to see if it contains only Multnomah county tracts.
 
 ```{r}
+# Overview of the dataset
+glimpse(ortracts)
 
+# Assuming the dataset includes a column for county names or identifiers (e.g., COUNTYFP for FIPS code)
+# Check unique values to confirm they all belong to Multnomah County
+# The exact column name may vary; adjust as needed based on the glimpse() output
+unique(ortracts$COUNTYFP)
 ```
 
+It looks like there are census tracts as well.
 
 ## Data Wrangling and Visualization
 
 Let's look at housing values `B25077_001`. Choose your county of birth (or any county you like) and all its adjacent counties. Create a visualization of the distribution of the median home values by census tract, for each county, using the most recent ACS data available (probably 2022).
 
+
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(sf)
+library(tigris)
+
+wayne_values <- get_acs(geography = "tract", variables = "B25077_001", 
+                        year = 2022, state = "MI", county = "Wayne", 
+                        survey = "acs5", output = "wide")
+```
+
+```{r}
+# For Wayne County
+wayne_tracts <- tracts(state = "MI", county = "Wayne", cb = TRUE)
+
+wayne_data <- left_join(wayne_values, wayne_tracts, by = c("GEOID" = "GEOID"))
+```
+
+```{r}
+wayne_data %>%
+  st_as_sf() %>%
+  ggplot() +
+  geom_sf(aes(fill = B25077_001E), color = NA) +
+  scale_fill_viridis_c(name = "Median Home Value", option = "plasma") + #color scale
+  labs(title = "Median home values in Wayne County, MI", subtitle = "By Census Tract") +
+  theme_void() +
+  theme(legend.position = "bottom")
+```
 
 
 ## Next steps
