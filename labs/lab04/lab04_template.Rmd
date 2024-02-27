@@ -18,5 +18,124 @@ library(tidyverse)
 
 ### Problem 1: COVID survey - interpretation
 
+Variability Across Groups: There appears to be significant variability in attitudes towards vaccination across different explanatory variables (e.g., year of study, specialty interest). This suggests that there might be diverse opinions within the medical and nursing student community, possibly influenced by factors such as clinical exposure and personal beliefs.
+
+General Agreement on Vaccination Importance: The points indicating mean Likert scores for statements related to the importance of vaccination and trust in vaccine efficacy seem to lean towards agreement (1 - Strongly Agree, 2 - Somewhat Agree), especially in the "All" category. This aligns with the expectation that future healthcare professionals recognize the value of vaccines in public health.
+
+Concerns and Disagreements: For some statements, particularly those related to vaccine mandates or potential side effects, the wider spread of error bars and higher mean scores (possibly indicating disagreement or neutrality) suggest that there are concerns and reservations among students. This is an interesting find considering the overall pro-vaccine sentiment and could reflect the complex nature of decision-making in healthcare.
 
 ### Problem 2: COVID survey - reconstruct
+
+```{r}
+covid_survey <- read_csv("~/Desktop/DataScience/math241/labs/lab04/data/covid-survey.csv", skip = 1) #skipped the first line since they did not represent column names properly
+```
+
+```{r}
+covid_survey_clean <- covid_survey %>%
+  filter(rowSums(!is.na(.[-1])) > 0)
+#removed rows where all values aside from response_id are NA
+```
+
+```{r}
+covid_survey_relabeled <- covid_survey_clean %>%
+  mutate(
+    exp_already_vax = recode(exp_already_vax, '0' = 'No', '1' = 'Yes'),
+    exp_profession = recode(exp_profession, '0' = 'Medical', '1' = 'Nursing'),
+    exp_gender = recode(exp_gender, '0' = 'Male', '1' = 'Female', '3' = 'Non-binary third gender', '4' = 'Prefer not to say'),
+    exp_race = recode(exp_race, '1' = 'American Indian / Alaskan Native', '2' = 'Asian', '3' = 'Black / African American', '4' = 'Native Hawaiian / Other Pacific Islander', '5' = 'White'),
+    exp_ethnicity = recode(exp_ethnicity, '1' = 'Hispanic / Latino', '2' = 'Non-Hispanic/Non-Latino'),
+    exp_age_bin = recode(exp_age_bin, '0' = '<20', '20' = '21-25', '25' = '26-30', '30' = '>30')
+  )
+#converts numerical codes to their corresponding categories based on guidelines
+```
+
+```{r}
+covid_survey_longer <- covid_survey_relabeled %>%
+  mutate(across(starts_with("exp_"), as.character)) %>% # Convert all exp_ columns to character
+  pivot_longer(
+    cols = starts_with("exp_"),
+    names_to = "explanatory",
+    values_to = "explanatory_value"
+  ) %>%
+  filter(!is.na(explanatory_value)) %>%
+  pivot_longer(
+    cols = starts_with("resp_"),
+    names_to = "response",
+    values_to = "response_value"
+  )
+#pivots the data for analysis
+
+covid_survey_longer
+```
+
+The first pivot_longer() statement in the code chunk above is taking multiple columns whose names start with "exp_" (which represent different explanatory variables) and converting them into a long format. In the resulting two-column layout, one column (explanatory) contains the names of the original explanatory variables, and the other column (explanatory_value) contains the corresponding values.
+
+The second pivot_longer() statement does the same transformation for columns starting with "resp_" (which represent different response variables from the survey). These columns are also converted into a long format, resulting in two columns: response, containing the names of the original response variables, and response_value, containing the corresponding values. 
+
+```{r}
+covid_survey_summary_stats_by_group <- covid_survey_longer %>%
+  group_by(explanatory, explanatory_value, response) %>%
+  summarise(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, 0.1, na.rm = TRUE),
+    high = quantile(response_value, 0.9, na.rm = TRUE)
+  )
+#calculates summary stats
+
+covid_survey_summary_stats_by_group
+```
+
+```{r, fig.width=25,fig.height=20}
+library(ggplot2)
+
+# Define the custom labels for the explanatory and response variables
+explanatory_variable_labels <- c(
+  "exp_age_bin" = "Age",
+  "exp_already_vax" = "Had COVID vaccine",
+  "exp_ethnicity" = "Ethnicity",
+  "exp_flu_vax" = "Had flu vaccine this year",
+  "exp_gender" = "Gender",
+  "exp_profession" = "Profession",
+  "exp_race" = "Race"
+)
+
+response_variable_labels <- c(
+  "resp_safety" = "Based on my understanding, I\nbelievethe vaccine is safe",
+  "resp_feel_safe_at_work" = "Getting the vaccine will\nmake me feel safer at work",
+  "resp_concern_safety" = "I am concerned about the safety\nand side effects of the vaccine",
+  "resp_confidence_science" = "I am confident in the scientific\nvetting process for the new COVID vaccines",
+  "resp_trust_info" = "I trust the information that I have\nreceived about the vaccines",
+  "resp_will_recommend" = "I will recommend the vaccine to\nfamily, friends, and community members"
+)
+
+# Update the ggplot code
+ggplot(covid_survey_summary_stats_by_group, aes(x = explanatory_value, y = mean, group = response)) +
+  geom_errorbar(aes(ymin = low, ymax = high), width = 0.2) +
+  geom_point() +
+  facet_grid(response ~ explanatory, scales = "free_x", labeller = labeller(
+    response = as_labeller(response_variable_labels),
+    explanatory = as_labeller(explanatory_variable_labels)
+  )) +
+  theme_bw(base_size = 14) + 
+  theme(
+    text = element_text(size = 12), 
+    axis.title = element_text(size = 14), 
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 10), 
+    axis.text.y = element_text(size = 10), 
+    legend.title = element_text(size = 12), 
+    legend.text = element_text(size = 10), 
+    strip.text = element_text(size = 12) 
+  ) +
+  labs(
+    x = "Explanatory Variable Levels", 
+    y = "Mean Likert Score", 
+    title = "COVID-19 Vaccination Attitudes"
+  ) +
+  scale_x_discrete(labels = explanatory_variable_labels) +
+  scale_y_continuous(labels = function(x) response_variable_labels[x])
+```
+
+
+Notes: I had some trouble with the plot, on the left side we can see that the prompts from the questionnaire are repeated and I couldn't quite figure out how to get rid of those. Also, the axes are flipped since I had a hard time fitting all the text into the plot when the axes were on their correct sides.
+
+

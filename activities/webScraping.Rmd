@@ -40,6 +40,23 @@ champ_table
 Using the same approach, grab the table of Portland's population over time (table 4), and create a simple visualization of the total population count over time.
 
 
+```{r}
+#Store url
+url <- "https://en.wikipedia.org/wiki/Portland,_Oregon"
+
+## Scrape html and store table
+
+#Grab all the tables and then navigate to the one you wanted.
+tables <- url %>%
+  read_html() %>%
+  html_nodes(css = "table")
+
+#Grab the specific table
+champ_table <- html_table(tables[[4]], fill = TRUE)
+champ_table
+
+```
+
 # Another Example
 
 * Although we saw that we can use `datapasta` to grab these data, let's scrape the [NYTimes.com's College Access Index](https://www.nytimes.com/interactive/2017/05/25/sunday-review/opinion-pell-table.html) table.
@@ -70,3 +87,28 @@ college_access_table2 <- url %>%
 ## Create a visualization
 
 Choose 3 variables and create a heuristic visualization using this dataset.
+
+freshman class, endowment per student, and pell grad share
+
+```{r}
+
+```
+
+
+```{r}
+ggplot(college_access_table, aes(x = Rank, y = College)) + 
+  geom_point(aes(color = Freshman class), alpha = 0.6) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+ggplot(college_access_table, aes(x = "Pell grad", y = Rank)) + 
+  geom_point(aes(color = "Freshman class"), alpha = 0.6) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+
