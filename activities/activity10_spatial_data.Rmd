@@ -33,7 +33,7 @@ library(RColorBrewer)
 
 ```{r, eval = F}
 # Load in your Census API key (replace YOUR_API_KEY with your actual key)
-census_api_key("YOUR_API_KEY", install = TRUE)
+census_api_key("3579cb4ddc820f37984700778b812af510e15c1a", install = T)
 ```
 
 ## Retrieving Spatial Data for Multnomah County, OR

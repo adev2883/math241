@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```{r}
 #Load tidyverse
 library(tidyverse)
+library(RCurl)
 library(mdsr)
 ```
 
@@ -26,14 +27,31 @@ a. Find all of the adjectives in Macbeth that end in more or less
 ```{r}
 data(Macbeth_raw)
 
+
 ```
 
 
 b. Find all of the lines containing the stage direction Exit or Exeunt.
 
 ```{r}
-
+macbeth <- Macbeth_raw %>%
+  str_split("\r\n") %>% # specify the end-of-line character(s)
+  pluck(1) # str_split returns a list of length 1
+# we grab its first element
+length(macbeth)
 ```
+
+```{r}
+macbeth %>% 
+  str_subset("Exit")
+```
+
+```{r}
+macbeth %>% 
+  str_subset("Exeunt")
+```
+
+There are 58 lines with exit or exeunt. We used the str_subset function to find which lines either exit or exeunt was in. note: how to just find the numebr of exits or exeunts and plot
 
 ## Problem 2 (Medium): 
 
@@ -41,7 +59,7 @@ a. Use regular expressions to determine the number of speaking lines in the Comp
 speak.
 
 ```{r, eval = FALSE}
-shakespeare_url <- "http://www.gutenberg.org/files/100/100-0.txt"
+shakespeare_url <- "https://www.gutenberg.org/files/100/100-0.txt"
 shakespeare <- RCurl::getURL(shakespeare_url) %>%
   
 ```

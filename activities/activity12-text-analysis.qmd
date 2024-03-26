@@ -37,6 +37,7 @@ The **janeaustenr** package offers a function, `austen_books()`, that returns a 
 #| label: get-data
 
 # add code here
+austen_books<-austen_books()
 ```
 
 -   **Demo:** Which books are included in the dataset?
@@ -45,7 +46,12 @@ The **janeaustenr** package offers a function, `austen_books()`, that returns a 
 #| label: books
 
 # add code here
+
+# View the titles of the books included in the dataset
+unique(austen_books$book)
 ```
+
+Sense & Sensibility, Pride & Prejudice, Mansfield Park, Emma, Northanger Abbey, Persuasion
 
 # Word frequencies
 
@@ -57,6 +63,14 @@ The **janeaustenr** package offers a function, `austen_books()`, that returns a 
 #| label: words
 
 # add code here
+
+# Split the text into words
+word_tokens <- austen_books %>%
+  unnest_tokens(word, text)
+
+word<-word_tokens %>% 
+  group_by(word) %>% 
+  summarize(count = n())
 ```
 
 -   **Your turn:** Discover the top 10 most commonly used words in each of Jane Austen's books.
