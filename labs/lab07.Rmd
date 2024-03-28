@@ -1,6 +1,6 @@
 ---
 title: "Lab 7"
-author: "Insert Name"
+author: "Ashwin Dev"
 date: "Math 241, Week 9"
 output:
   pdf_document
@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 # Put all necessary libraries here
 library(tidyverse)
 library(tidytext)
+library(wordcloud)
 
 # Ensure the textdata package is installed
 if (!requireNamespace("textdata", quietly = TRUE)) {
@@ -56,30 +57,100 @@ data("babynames")
 
 a. For 2000, find the ten most popular female baby names that start with the letter Z.
 
-```{r, eval = FALSE}
-#Hint: Use 
-top_n(___)
+***
+
+```{r}
+FZ <- babynames %>%
+  filter(year == 2000, sex == 'F', grepl("^Z", name)) %>%
+  top_n(10, n) %>%
+  arrange(desc(n)) %>%
+  select(name, n)
+
+FZ
+```
+
+***
+
+
+b. For 2000, find the ten most popular female baby names that contain the letter z.
+
+***
+
+```{r}
+z10 <- babynames %>%
+  filter(year == 2000, sex == 'F', grepl("z", name, ignore.case = TRUE)) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 10) %>%
+  select(name, n)
+
+z10
 ```
 
 
+***
+
+c. For 2000, find the ten most popular female baby names that end in the letter z.
+
+***
+
+```{r}
+endZ<- babynames %>%
+  filter(year == 2000, sex == 'F', grepl("z$", name, ignore.case = TRUE)) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 10) %>%
+  select(name, n)
+
+endZ
+```
 
 
-b. For 2000, find the ten most popular female baby names that contain the letter z.  
-
-
-
-c. For 2000, find the ten most popular female baby names that end in the letter z. 
+***
 
 
 d. Between your three tables in 1.a - 1.c, do any of the names show up on more than one list?  If so, which ones? (Yes, I know you could do this visually but use some joins!)
 
+***
+
+```{r}
+# joins FZ and z10
+common_FZ_z10 <- inner_join(FZ, z10, by = "name")
+
+# joins FZ and endZ
+common_FZ_endZ <- inner_join(FZ, endZ, by = "name")
+
+# Join z10 and endZ
+common_z10_endZ <- inner_join(z10, endZ, by = "name")
+
+# combines
+all_common_names <- bind_rows(common_FZ_z10, common_FZ_endZ, common_z10_endZ) %>%
+  distinct(name)
+
+all_common_names
+```
 
 
-
+***
 
 
 e.  Verify that none of the baby names contain a numeric (0-9) in them.
 
+***
+
+```{r}
+names_with_digits <- babynames %>%
+  filter(year == 2000, grepl("[0-9]", name)) %>%
+  select(year, sex, name, n)
+
+if(nrow(names_with_digits) > 0) {
+  print("names contain digits:")
+  print(names_with_digits)
+} else {
+  print("No names contain digits")
+}
+```
+
+
+***
 
 
 f. While none of the names contain 0-9, that doesn't mean they don't contain "one", "two", ..., or "nine".  Create a table that provides the number of times a baby's name contained the word "zero", the word "one", ... the word "nine". 
@@ -93,17 +164,87 @@ Notes:
 *Hint*: You will have two steps that require pattern matching:
     1. Subset your table to only include the rows with the desired words.
     2. Add a column that contains the desired word.  
+    
+***
+
+```{r}
+names_with_numbers <- babynames %>%
+  mutate(name = tolower(name), 
+         number_word = str_extract(name, "zero|one|two|three|four|five|six|seven|eight|nine")) %>%
+  filter(!is.na(number_word)) %>%
+  group_by(number_word) %>%
+  summarise(count = n())
+
+names_with_numbers
+```
+
+
+***
 
 
 g. Which written number or numbers don't show up in any of the baby names?
 
+***
 
+It looks like there isn't any written number that doesn't show up in any of the baby names at least once.
+
+***
 
 
 h. Create a table that contains the names and their frequencies for the two least common written numbers.
 
+***
 
-i. List out the names that contain no vowels (consider "y" to be a vowel).  
+```{r}
+# identifies names with number-words and their frequencies
+names_with_numbers <- babynames %>%
+  mutate(name_lower = tolower(name),
+         number_word = str_extract(name_lower, "zero|one|two|three|four|five|six|seven|eight|nine")) %>%
+  filter(!is.na(number_word)) %>%
+  select(name, number_word, n) %>%
+  group_by(number_word) %>%
+  summarise(total_frequency = sum(n))
+
+# identifies the two least common number-words
+least_common_numbers <- names_with_numbers %>%
+  arrange(total_frequency) %>%
+  slice_head(n = 2)
+
+least_common_numbers
+```
+
+
+
+```{r}
+# names and frequencies for these two least common numbers
+names_for_least_common <- babynames %>%
+  mutate(name_lower = tolower(name),
+         number_word = str_extract(name_lower, paste(least_common_numbers$number_word, collapse="|"))) %>%
+  filter(!is.na(number_word)) %>%
+  select(name, number_word, n)
+
+names_for_least_common
+```
+
+
+***
+
+
+i. List out the names that contain no vowels (consider "y" to be a vowel).
+
+***
+
+```{r}
+names_without_vowels <- babynames %>%
+  mutate(name_lower = tolower(name)) %>%
+  filter(!grepl("[aeiouy]", name_lower)) %>%
+  select(name, n)
+
+names_without_vowels
+```
+
+
+***
 
 
 ### Problem 2: Tidying the "Call of the Wild"
@@ -117,12 +258,68 @@ wild <- gutenberg_download(215)
 
 a.  Create a tidy text dataset where you tokenize by words.
 
+***
 
+```{r}
+wild <- gutenberg_download(215)
+
+tidy_wild <- wild %>%
+  unnest_tokens(word, text)
+
+head(tidy_wild)
+```
+
+
+***
 
 b. Find the frequency of the 20 most common words.  First, remove stop words.
 
+***
+
+```{r}
+data("stop_words")
+
+# removes stop words
+filtered_wild <- tidy_wild %>%
+  anti_join(stop_words, by = "word")
+
+word_frequencies <- filtered_wild %>%
+  count(word, sort = TRUE) %>%
+  top_n(20, n)
+
+word_frequencies
+```
+
+
+***
+
 
 c. Create a bar graph and a word cloud of the frequencies of the 20 most common words.
+
+***
+
+```{r}
+ggplot(word_frequencies, aes(x = reorder(word, n), y = n)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Top 20 Most Common Words in 'The Call of the Wild'",
+       x = "Word",
+       y = "Frequency") +
+  coord_flip() +
+  theme_minimal()
+```
+
+```{r}
+wordcloud(words = word_frequencies$word,
+          freq = word_frequencies$n,
+          min.freq = 1,
+          max.words = 20,
+          random.order = FALSE,
+          rot.per = 0.35,
+          colors = brewer.pal(8, "Dark2"))
+```
+
+
+***
 
 
 d. Explore the sentiment of the text using three of the sentiment lexicons in `tidytext`. What does your analysis say about the sentiment of the text?
@@ -132,16 +329,117 @@ Notes:
 * Make sure to NOT remove stop words this time.  
 * `afinn` is a numeric score and should be handled differently than the categorical scores.
 
+***
+
+```{r}
+tidy_text <- wild %>%
+  unnest_tokens(word, text)
+```
+
+```{r}
+afinn <- get_sentiments("afinn") %>%
+  filter(word %in% tidy_text$word)
+
+sentiment_afinn <- tidy_text %>%
+  inner_join(afinn, by = "word") %>%
+  summarise(total_score = sum(value))
+
+sentiment_afinn
+```
+
+```{r}
+bing <- get_sentiments("bing") %>%
+  filter(word %in% tidy_text$word)
+
+sentiment_bing <- tidy_text %>%
+  inner_join(bing, by = "word") %>%
+  count(sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment_balance = positive - negative)
+
+sentiment_bing
+```
+
+```{r}
+nrc <- get_sentiments("nrc") %>%
+  filter(word %in% tidy_text$word)
+
+sentiment_nrc <- tidy_text %>%
+  inner_join(nrc, by = "word") %>%
+  count(sentiment) %>%
+  spread(sentiment, n, fill = 0)
+
+sentiment_nrc
+```
+
+The AFINN, NRC, and Bing lexicons reveal a predominantly negative sentiment, underscored by a significant presence of words related to fear, anger, sadness, and disgust, which aligns with the book's themes of survival, conflict, and the harsh realities of nature. Despite this, it looks like the text also contains substantial positive and neutral emotions like joy, trust, and anticipation, hinting at moments of triumph and resilience amidst adversity. 
+
+***
+
 
 
 e. If you didn't do so in 2.d, compute the average sentiment score of the text using `afinn`.  Which positive words had the biggest impact? Which negative words had the biggest impact?
+
+***
+
+```{r}
+afinn <- get_sentiments("afinn")
+
+average_sentiment <- tidy_text %>%
+  inner_join(afinn, by = "word") %>%
+  summarise(average_score = mean(value))
+
+average_sentiment
+```
+
+```{r}
+# positive words with the biggest impact
+positive_impact <- tidy_text %>%
+  inner_join(afinn, by = "word") %>%
+  filter(value > 0) %>%
+  arrange(desc(value)) %>%
+  distinct(word, .keep_all = TRUE)
+
+# negative words with the biggest impact
+negative_impact <- tidy_text %>%
+  inner_join(afinn, by = "word") %>%
+  filter(value < 0) %>%
+  arrange(value) %>%
+  distinct(word, .keep_all = TRUE)
+
+print(head(positive_impact, n = 5))
+print(head(negative_impact, n = 5))
+```
+
+Miracle, wonderful, triumph, win, and terrific seemed to be the positive words with the biggest impact.
+
+Cock, hell, angry, anger, and bloody seemed to be the negative words with the biggest impact.
+
+***
 
 
 
 f. You should have found that "no" was an important negative word in the sentiment score.  To know if that really makes sense, let's turn to the raw lines of text for context.  Pull out all of the lines that have the word "no" in them.  Make sure to not pull out extraneous lines (e.g., a line with the word "now").  
 
+***
+
+```{r}
+lines_with_no <- grep("\\bno\\b", wild$text, value = TRUE, ignore.case = TRUE)
+
+head(lines_with_no, n = 20)
+```
+
+
+***
+
 
 g. Draw some conclusions about how "no" is used in the text.
+
+***
+
+It looks like the word "no" often highlights the absence or lack of something, such as visibility or chances of success. It also highlights the limitations faced by characters, especially Buck, in the harsh environment.
+
+***
 
 
 h. We can also look at how the sentiment of the text changes as the text progresses.  Below, I have added two columns to the original dataset. Now I want you to do the following wrangling:
@@ -151,33 +449,122 @@ h. We can also look at how the sentiment of the text changes as the text progres
 * Count the frequency of sentiments by index.
 * Reshape the data to be wide with the count of the negative sentiments in one column and the positive in another, along with a column for index.
 * Compute a sentiment column by subtracting the negative score from the positive.
+
+***
     
 
 ```{r}
 wild_time <- wild %>%
-  mutate(line = row_number(), index = floor(line/45) + 1) 
+  mutate(line = row_number(), index = floor(line/45) + 1) %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing"), by = "word")
 ```
 
-```{r, eval = FALSE}
-#Hint: fill = 0 will insert zero instead of NA
-pivot_XXX(..., values_fill = 0)
+```{r}
+sentiment_counts <- wild_time %>%
+  count(index, sentiment) 
+
+sentiment_wide <- sentiment_counts %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = list(n = 0))
+
+sentiment_wide <- sentiment_wide %>%
+  mutate(sentiment_score = positive - negative)
 ```
 
-
+***
 
 
 i. Create a plot of the sentiment scores as the text progresses.
 
+***
+
+```{r}
+ggplot(sentiment_wide, aes(x = index, y = sentiment_score)) +
+  geom_line() +
+  geom_smooth(se = FALSE, colour = "red", method = "loess") +
+  labs(title = "Sentiment Score Progression in 'The Call of the Wild'",
+       x = "Text Progression (by index)", y = "Sentiment Score")
+```
 
 
+***
 
 j. The choice of 45 lines per chunk was pretty arbitrary.  Try modifying the index value a few times and recreating the plot in i.  Based on your plots, what can you conclude about the sentiment of the novel as it progresses?
+
+***
+
+```{r}
+wild_time_fine <- wild %>%
+  mutate(line = row_number(), index = floor(line/20) + 1) %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = list(n = 0)) %>%
+  mutate(sentiment_score = positive - negative)
+```
+
+```{r}
+wild_time_coarse <- wild %>%
+  mutate(line = row_number(), index = floor(line/90) + 1) %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing"), by = "word") %>%
+  count(index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = list(n = 0)) %>%
+  mutate(sentiment_score = positive - negative)
+```
+
+
+```{r}
+ggplot(wild_time_fine, aes(x = index, y = sentiment_score)) +
+  geom_line() +
+  geom_smooth(se = FALSE, colour = "red", method = "loess") +
+  labs(title = "Fine-Grained Sentiment Progression in 'The Call of the Wild'",
+       x = "Segment Index (Finer Segmentation)", y = "Sentiment Score",
+       subtitle = "Analysis with 20 lines per chunk")
+```
+
+```{r}
+ggplot(wild_time_coarse, aes(x = index, y = sentiment_score)) +
+  geom_line() +
+  geom_smooth(se = FALSE, colour = "red", method = "loess") +
+  labs(title = "Broad-View Sentiment Progression in 'The Call of the Wild'",
+       x = "Segment Index (Broader Segmentation)", y = "Sentiment Score",
+       subtitle = "Analysis with 90 lines per chunk")
+```
+
+The fine-grained plot of sentiment progression possibly suggests detailed emotional fluctuations, corresponding closely with specific events and narrative nuances. The broad-view plot smooths these details into a depiction of general sentiment trends, aligning with major plot developments or thematic shifts. Both have a similar trendline despite their granularity differences, indicating consistent thematic sentiments throughout the novel.
+
+***
 
 
 k. Let's look at the bigrams (2 consecutive words).  Tokenize the text by bigrams.  
 
+***
+
+```{r}
+wild_bigrams <- wild %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+
+head(wild_bigrams)
+```
+
+
+***
+
 
 
 l.  Produce a sorted table that counts the frequency of each bigram and notice that stop words are still an issue.
+
+***
+
+```{r}
+bigram_counts <- wild_bigrams %>%
+  count(bigram, sort = TRUE)
+
+head(bigram_counts)
+```
+
+
+***
 
 

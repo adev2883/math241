@@ -33,6 +33,10 @@ library(datasauRus)
 Freedom House has analyzed challenges to freedom and advocated for greater political rights and civil liberties in a variety of publications over the years. They produce an ordinal variable from 1 to 7- from more to less civil liberties (More about the data)\[https://freedomhouse.org/reports/publication-archives\].
 
 ```{r}
+freedom <- read_csv("Desktop/DataScience/math241/activities/freedom.csv")
+```
+
+```{r}
 #| label: get-data
 #| cache: true
 #| echo: false
@@ -66,12 +70,25 @@ freedom_ranked <- freedom %>%
 #| eval: false
 
 freedom_ranked %>%
-  filter() %>% 
-  ggplot()
-
+  filter(country == "Iran") %>% 
+  ggplot(aes(x = year, y = civil_liberty))+geom_line()
 ```
 
 -   **Demo:** Build on your previous plot to create an interactive version of the figure. Hint: use `transition_reveal()`
+
+```{r}
+
+freedom_ranked2 <- freedom_ranked %>% 
+  filter(country == "Iran")
+
+p <- ggplot(freedom_ranked2, aes(x = year, y = civil_liberty))+
+  geom_line()
+
+p_animate <- p +
+  transition_reveal(year)
+
+animate(p_animate, fps = 5, end_pause = 20)
+```
 
 # Visualizing multiple countries at once!
 
