@@ -14,13 +14,14 @@ For each of these problems, I am giving you some static code as a starting point
 
 Also, here's some template code to get you started on each app.  
 
-```{r, eval = FALSE}
+```{r}
 # Load libraries
 library(shiny)
+library(DT)
 
 # User interface
 ui <- fluidPage(
-  titlePanel(),
+  titlePanel("activity14"),
   sidebarLayout(
     sidebarPanel(
     ),
